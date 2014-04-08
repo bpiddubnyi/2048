@@ -87,7 +87,7 @@ static void print_board(WINDOW *w, struct game_2048 *g) {
 	if (height < BOARD_HEIGHT || width < BOARD_WIDTH) {
 		wmove(w, 0, 0);
 		wprintw(w, "Terminal window is too small to display gameboard");
-		wrefresh(w);
+		wnoutrefresh(w);
 		return;
 	}
 
@@ -114,7 +114,7 @@ static void print_board(WINDOW *w, struct game_2048 *g) {
 		print_table_row(w, false);
 	}
 
-	wrefresh(w);
+	wnoutrefresh(w);
 }
 
 static void print_score(WINDOW *w, uint64_t score)
@@ -128,7 +128,7 @@ static void print_score(WINDOW *w, uint64_t score)
 	wprintw(w,"Score: %" PRIu64, score);
 	wattroff(w, A_BOLD);
 
-	wrefresh(w);
+	wnoutrefresh(w);
 }
 
 static void print_menu_offer(WINDOW *w)
@@ -140,7 +140,7 @@ static void print_menu_offer(WINDOW *w)
 	wprintw(w, " Press 'm' for menu");
 	wattroff(w, A_BOLD);
 
-	wrefresh(w);
+	wnoutrefresh(w);
 }
 
 enum game_menu {
@@ -240,6 +240,7 @@ static void main_loop(void)
 		print_board(board_w, &game);
 		print_score(score_w, game.score);
 		print_menu_offer(dialog_w);
+		doupdate();
 
 		show_continue = false;
 		if (game.win || game_2048_is_over(&game) 

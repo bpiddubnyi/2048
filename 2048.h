@@ -10,14 +10,17 @@ struct game_2048 {
 	uint16_t board[G2048_BOARD_SIDE][G2048_BOARD_SIDE];
 };
 
+enum game_2048_move {
+	G2048_MOVE_LEFT,
+	G2048_MOVE_RIGHT,
+	G2048_MOVE_TOP,
+	G2048_MOVE_BOTTOM
+};
+
 void game_2048_init(struct game_2048 *g);
 
-void game_2048_move_left(struct game_2048 *g);
-void game_2048_move_right(struct game_2048 *g);
-void game_2048_move_top(struct game_2048 *g);
-void game_2048_move_bottom(struct game_2048 *g);
+size_t game_2048_move(struct game_2048 *g, enum game_2048_move m);
 
-void game_2048_add_random_cell(struct game_2048 *g);
 bool game_2048_is_over(struct game_2048 *g);
 
 #endif /* __2048_H__ */

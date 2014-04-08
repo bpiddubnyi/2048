@@ -113,7 +113,7 @@ static void print_score(WINDOW *w, uint64_t score)
 
 static void game_loop(void)
 {
-	int height, width, ch = 0;
+	int height, width, mv, ch = 0;
 	bool exit = false;
 	struct game_2048 game;
 	WINDOW *stats_w, *board_w;
@@ -136,21 +136,26 @@ static void game_loop(void)
 		ch = getch();
 		switch(ch) {
 		case KEY_LEFT:
-			game_2048_move_left(&game);
+			mv = G2048_MOVE_LEFT;
 			break;
 		case KEY_RIGHT:
-			game_2048_move_right(&game);
+			mv = G2048_MOVE_RIGHT;
 			break;
 		case KEY_DOWN:
-			game_2048_move_bottom(&game);
+			mv = G2048_MOVE_BOTTOM;
 			break;
 		case KEY_UP:
-			game_2048_move_top(&game);
+			mv = G2048_MOVE_TOP;
 			break;
 		case 'q':
 			exit = true;
 			break;
+		default:
+			mv = -1;
 		}
+
+		if (mv > -1)
+			game_2048_move(&game, mv);
 	}
 
 	delwin(board_w);

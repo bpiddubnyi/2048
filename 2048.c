@@ -176,57 +176,6 @@ static size_t game_2048_merge_col_bottom(struct game_2048 *g, size_t col) {
 	return cells_moved;
 }
 
-/* {{{1 Move functions */
-
-void game_2048_move_left(struct game_2048 *g)
-{
-	size_t cells_moved = 0;
-	for (size_t row = 0; row < G2048_BOARD_SIDE; ++row)
-		cells_moved += game_2048_merge_row_left(g, row);
-	if (cells_moved)
-		game_2048_add_random_cell(g);
-}
-
-void game_2048_move_right(struct game_2048 *g)
-{
-	size_t cells_moved = 0;
-	for (size_t row = 0; row < G2048_BOARD_SIDE; ++row)
-		game_2048_merge_row_right(g, row);
-	if (cells_moved)
-		game_2048_add_random_cell(g);
-}
-
-void game_2048_move_top(struct game_2048 *g)
-{
-	size_t cells_moved = 0;
-	for (size_t col = 0; col < G2048_BOARD_SIDE; ++col)
-		cells_moved += game_2048_merge_col_top(g, col);
-	if (cells_moved)
-		game_2048_add_random_cell(g);
-}
-
-void game_2048_move_bottom(struct game_2048 *g)
-{
-	size_t cells_moved = 0;
-	for (size_t col = 0; col < G2048_BOARD_SIDE; ++col)
-		cells_moved += game_2048_merge_col_bottom(g, col);
-	if (cells_moved)
-		game_2048_add_random_cell(g);
-}
-
-/* {{{1 Game over check */
-
-bool game_2048_is_over(struct game_2048 *g)
-{
-	for (size_t row = 0; row < G2048_BOARD_SIDE; ++row) {
-		for (size_t col = 0; col < G2048_BOARD_SIDE; ++col) {
-			if (g->board[row][col] == 0)
-				return false;
-		}
-	}
-	return true;
-}
-
 /* {{{1 Add random cell */
 
 void game_2048_add_random_cell(struct game_2048 *g)
@@ -249,7 +198,50 @@ void game_2048_add_random_cell(struct game_2048 *g)
 	}
 }
 
- /* {{{1 Initialize main structure */
+/* {{{1 Move */
+
+size_t game_2048_move(struct game_2048 *g, enum game_2048_move m)
+{
+	size_t cells_moved = 0;
+
+	assert(g);
+	
+	for (size_t i = 0; i < G2048_BOARD_SIDE; ++i) {
+		switch(m) {
+		case G2048_MOVE_LEFT:
+			cells_moved += game_2048_merge_row_left(g, i);
+			break;
+		case G2048_MOVE_RIGHT:
+			cells_moved += game_2048_merge_row_right(g, i);
+			break;
+		case G2048_MOVE_TOP:
+			cells_moved += game_2048_merge_col_top(g, i);
+			break;
+		case G2048_MOVE_BOTTOM:
+			cells_moved += game_2048_merge_col_bottom(g, i);
+			break;
+		}
+	}
+	if (cells_moved)
+		game_2048_add_random_cell(g);
+
+	return cells_moved;
+}
+
+/* {{{1 Game over check */
+
+bool game_2048_is_over(struct game_2048 *g)
+{
+	for (size_t row = 0; row < G2048_BOARD_SIDE; ++row) {
+		for (size_t col = 0; col < G2048_BOARD_SIDE; ++col) {
+			if (g->board[row][col] == 0)
+				return false;
+		}
+	}
+	return true;
+}
+
+/* {{{1 Initialize main structure */
 
 void game_2048_init(struct game_2048 *g)
 {

@@ -1,6 +1,6 @@
 PROJECT ?= 2048
 CFLAGS = -W -Wall -Werror -std=c99 -pedantic
-LDFLAGS = -lncurses 
+LDFLAGS = -lm -lncurses 
 
 default: all
 

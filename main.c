@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "2048.h"
 
@@ -32,41 +33,7 @@ static void print_cell(WINDOW *w, struct game_2048 *g, size_t row, size_t col)
 	left = (FIELD_WIDTH - len) / 2;
 	right = FIELD_WIDTH - len -left;
 
-	switch(g->board[row][col]) {
-	case 2:
-		color = 0;
-		break;
-	case 4:
-		color = 1;
-		break;
-	case 8:
-		color = 2;
-		break;
-	case 16:
-		color = 3;
-		break;
-	case 32:
-		color = 4;
-		break;
-	case 64:
-		color = 5;
-		break;
-	case 128:
-		color = 6;
-		break;
-	case 256:
-		color = 7;
-		break;
-	case 512:
-		color = 8;
-		break;
-	case 1024:
-		color = 9;
-		break;
-	case 2048:
-		color = 10;
-		break;
-	}
+	color = (int)log2(g->board[row][col] / 2);
 
 	wattron(w, A_BOLD | COLOR_PAIR(color));
 	wprintw(w, "%*s%" PRIu16 "%*s", left, " ", g->board[row][col], right, " ");
@@ -210,16 +177,9 @@ static void game_loop(void)
 
 static void define_colors(void)
 {
-	init_pair(1, 1, COLOR_BLACK);
-	init_pair(2, 2, COLOR_BLACK);
-	init_pair(3, 3, COLOR_BLACK);
-	init_pair(4, 4, COLOR_BLACK);
-	init_pair(5, 5, COLOR_BLACK);
-	init_pair(6, 6, COLOR_BLACK);
-	init_pair(7, 7, COLOR_BLACK);
-	init_pair(8, 8, COLOR_BLACK);
-	init_pair(9, 9, COLOR_BLACK);
-	init_pair(10, 10, COLOR_BLACK);
+	for (int i = 1; i <= 10; ++i) {
+		init_pair(i, i, COLOR_BLACK);
+	}
 }
 
 int main() {

@@ -2,11 +2,13 @@
 #define __2048_H__
 
 #include <inttypes.h>
+#include <stdbool.h>
 
 #define G2048_BOARD_SIDE 4
 
 struct game_2048 {
 	uint64_t score;
+	bool     win;
 	uint16_t board[G2048_BOARD_SIDE][G2048_BOARD_SIDE];
 };
 

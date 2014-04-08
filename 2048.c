@@ -110,6 +110,10 @@ static size_t game_2048_merge_row_left(struct game_2048 *g, size_t row) {
 			g->board[row][col] *= 2;
 			g->board[row][col + 1] = 0;
 			g->score += g->board[row][col];
+			
+			if (g->board[row][col] == 2048)
+				g->win = true;
+
 			++cells_moved;
 			cells_moved += game_2048_collapse_row_left(g, row);
 		}
@@ -129,6 +133,10 @@ static size_t game_2048_merge_row_right(struct game_2048 *g, size_t row) {
 			g->board[row][col] *= 2;
 			g->board[row][col - 1] = 0;
 			g->score += g->board[row][col];
+			
+			if (g->board[row][col] == 2048)
+				g->win = true;
+
 			++cells_moved;
 			cells_moved += game_2048_collapse_row_right(g, row);
 		}
@@ -150,6 +158,10 @@ static size_t game_2048_merge_col_top(struct game_2048 *g, size_t col) {
 			g->board[row][col] *= 2;
 			g->board[row + 1][col] = 0;
 			g->score += g->board[row][col];
+			
+			if (g->board[row][col] == 2048)
+				g->win = true;
+
 			++cells_moved;
 			cells_moved += game_2048_collapse_col_top(g, col);
 		}
@@ -169,6 +181,10 @@ static size_t game_2048_merge_col_bottom(struct game_2048 *g, size_t col) {
 			g->board[row][col] *= 2;
 			g->board[row - 1][col] = 0;
 			g->score += g->board[row][col];
+			
+			if (g->board[row][col] == 2048)
+				g->win = true;
+
 			++cells_moved;
 			cells_moved += game_2048_collapse_col_bottom(g, col);
 		}

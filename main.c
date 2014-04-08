@@ -109,70 +109,144 @@ static void print_score(WINDOW *w, uint64_t score)
 	assert(w);
 
 	wclear(w);
+	wmove(w, 0, 0);
 
 	wattron(w, A_BOLD);
-	mvwprintw(w, 0, 0, " Score: %" PRIu64, score);
+	wprintw(w,"Score: %" PRIu64, score);
 	wattroff(w, A_BOLD);
+
 	wrefresh(w);
 }
 
-static void game_loop(void)
+static void print_menu_offer(WINDOW *w)
 {
-	int height, width, mv, ch = 0;
-	bool exit = false;
+	wclear(w);
+	wmove(w, 0, 0);
+	
+	wattron(w, A_BOLD);
+	wprintw(w, " Press 'm' for menu");
+	wattroff(w, A_BOLD);
+
+	wrefresh(w);
+}
+
+enum game_menu {
+	MENU_QUIT,
+	MENU_NEW_GAME,
+	MENU_CONTINUE
+};
+
+static int show_game_menu(WINDOW *w, bool win, bool show_continue)
+{
+	int ch;
+
+	wclear(w);
+	wmove(w, 0, 0);
+
+	if (win) {
+		wattron(w, A_BOLD);
+		wprintw(w, " YOU WIN ");
+		wattroff(w, A_BOLD);
+	} else if (!show_continue) {
+		wattron(w, A_BOLD);
+		wprintw(w, " GAME OVER ");
+		wattroff(w, A_BOLD);
+	}
+	
+	wprintw(w, "Start a new game(n) / exit(q)%s? ", 
+		show_continue ? " / continue(c)" : "");
+	wrefresh(w);
+	
+	while (true) {
+		ch = getch();
+		switch(ch) {
+		case 'n':
+			return MENU_NEW_GAME;
+		case 'q':
+			return MENU_QUIT;
+		case 'c':
+			if (!show_continue)
+				break;
+			return MENU_CONTINUE;
+		}
+	}
+	return true;
+}
+
+static bool game_action(struct game_2048 *g)
+{
+	int ch;
+	int mv = -1;
+
+	assert(g);
+
+	while(true) {
+		ch = getch();
+		switch(ch) {
+		case KEY_LEFT:
+			mv = G2048_MOVE_LEFT;
+			goto action;
+		case KEY_RIGHT:
+			mv = G2048_MOVE_RIGHT;
+			goto action;
+		case KEY_DOWN:
+			mv = G2048_MOVE_BOTTOM;
+			goto action;
+		case KEY_UP:
+			mv = G2048_MOVE_TOP;
+			goto action;
+		case 'm':
+			return true;
+			break;
+		}
+	}
+
+action:
+	game_2048_move(g, mv);
+
+	return false;
+}
+
+static void main_loop(void)
+{
+	bool show_continue, exit = false;
+	int height, width;
 	struct game_2048 game;
-	WINDOW *stats_w, *board_w;
+	WINDOW *score_w, *board_w, *dialog_w;
 
 	getmaxyx(stdscr, height, width);
 
-	stats_w = newwin(1, width, 0, 0);
-	board_w = newwin(height - 1, width, 1, 0);
-	
-	wrefresh(stats_w);
-	wrefresh(board_w);
+	score_w = newwin(1, width, 0, 0);
+	board_w = newwin(height - 2, width, 1, 0);
+	dialog_w = newwin(1, width, height - 1, 0);
 
 	refresh();
 
 	game_2048_init(&game);
 	while (!exit) {
 		print_board(board_w, &game);
-		print_score(stats_w, game.score);
+		print_score(score_w, game.score);
+		print_menu_offer(dialog_w);
 
-		if (game_2048_is_over(&game))
-			exit = true;
-
-		ch = getch();
-		switch(ch) {
-		case KEY_LEFT:
-			mv = G2048_MOVE_LEFT;
-			break;
-		case KEY_RIGHT:
-			mv = G2048_MOVE_RIGHT;
-			break;
-		case KEY_DOWN:
-			mv = G2048_MOVE_BOTTOM;
-			break;
-		case KEY_UP:
-			mv = G2048_MOVE_TOP;
-			break;
-		case 'q':
-			exit = true;
-			break;
-		case 'n':
-			if (exit == true) {
-				exit = false;
+		show_continue = false;
+		if (game.win || game_2048_is_over(&game) 
+		    || (show_continue = game_action(&game))) { 
+			switch(show_game_menu(dialog_w, game.win, show_continue)) {
+			case MENU_QUIT:
+				exit = true;
+				break;
+			case MENU_NEW_GAME:
 				game_2048_init(&game);
+				continue;
+			case MENU_CONTINUE:
+				continue;
 			}
-		default:
-			mv = -1;
 		}
-
-		if (mv > -1)
-			game_2048_move(&game, mv);
 	}
 
+	delwin(dialog_w);
 	delwin(board_w);
-	delwin(stats_w);
+	delwin(score_w);
 }
 
 static void define_colors(void)
@@ -193,7 +267,7 @@ int main() {
 		define_colors();
 	}
 
-	game_loop();
+	main_loop();
 
 	endwin();
 	return 0;

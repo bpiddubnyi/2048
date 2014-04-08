@@ -1,62 +1,27 @@
-#define _BSD_SOURCE
-
 #include <ncurses.h>
 #include <assert.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <inttypes.h>
 #include <stdbool.h>
-#include <string.h>
 #include <stdlib.h>
-#include <time.h>
 
-#define BOARD_SIDE 4
-#define FIELD_WIDTH 8
+#include "2048.h"
+
+#define FIELD_WIDTH  8
 #define FIELD_HEIGHT 3
-#define BORDERS_NUM (BOARD_SIDE + 1)
-#define BOARD_WIDTH ((FIELD_WIDTH * BOARD_SIDE) + BORDERS_NUM)
-#define BOARD_HEIGHT ((FIELD_HEIGHT * BOARD_SIDE) + BORDERS_NUM)
+#define BORDERS_NUM (G2048_BOARD_SIDE + 1)
+#define BOARD_WIDTH ((FIELD_WIDTH * G2048_BOARD_SIDE) + BORDERS_NUM)
+#define BOARD_HEIGHT ((FIELD_HEIGHT * G2048_BOARD_SIDE) + BORDERS_NUM)
 #define CELL_PADDING ((FIELD_HEIGHT - 1) / 2)
 
-struct game {
-	uint64_t score;
-	uint16_t board[BOARD_SIDE][BOARD_SIDE];
-};
-
-void game_add_random_cell(struct game *g)
-{
-	assert(g);
-	size_t x, y;
-
-	srandom(time(NULL));
-	while(true) {
-		x = random() % BOARD_SIDE;
-		y = random() % BOARD_SIDE;
-
-		if (g->board[x][y] == 0) {
-			g->board[x][y] = (x + y) % 2 ? 2 : 4;
-			break;
-		}
-	}
-}
-
-void game_init(struct game *g)
-{
-	assert(g);
-
-	memset(g, 0, sizeof(*g));
-	game_add_random_cell(g);
-	game_add_random_cell(g);
-}
-
-static void print_cell(WINDOW *w, struct game *g, size_t row, size_t col)
+static void print_cell(WINDOW *w, struct game_2048 *g, size_t row, size_t col)
 {
 	char buf[FIELD_WIDTH];
 	int len, left, right;
 
 	assert(g);
-	assert(row < BOARD_SIDE);
-	assert(col < BOARD_SIDE);
+	assert(row < G2048_BOARD_SIDE);
+	assert(col < G2048_BOARD_SIDE);
 
 	if (g->board[col][row] == 0) {
 		wprintw(w, "%*s", FIELD_WIDTH, " ");
@@ -72,12 +37,12 @@ static void print_cell(WINDOW *w, struct game *g, size_t row, size_t col)
 	attroff(A_BOLD);
 }
 
-static void print_board_row(WINDOW *w, struct game *g, size_t row)
+static void print_board_row(WINDOW *w, struct game_2048 *g, size_t row)
 {
 	assert(w);
 
 	waddch(w, '|');
-	for (int col = 0; col < BOARD_SIDE; ++col) {
+	for (int col = 0; col < G2048_BOARD_SIDE; ++col) {
 		print_cell(w, g, row, col);
 		waddch(w, '|');
 	}
@@ -88,7 +53,7 @@ static void print_table_row(WINDOW *w, bool empty)
 	assert(w);
 
 	waddch(w, empty ? '|' : '+');
-	for (size_t cell = 0; cell < BOARD_SIDE; ++cell) {
+	for (size_t cell = 0; cell < G2048_BOARD_SIDE; ++cell) {
 		for (size_t ch = 0; ch < FIELD_WIDTH; ++ch) {
 			waddch(w, empty ? ' ' : '-');
 		}
@@ -96,7 +61,7 @@ static void print_table_row(WINDOW *w, bool empty)
 	}
 }
 
-static void print_board(WINDOW *w, struct game *g) {
+static void print_board(WINDOW *w, struct game_2048 *g) {
 	int height, width, left, top;
 	assert(w);
 
@@ -115,7 +80,7 @@ static void print_board(WINDOW *w, struct game *g) {
 
 	wmove(w, top, left);
 	print_table_row(w, false);
-	for (size_t row = 0; row < BOARD_SIDE; ++row) {
+	for (size_t row = 0; row < G2048_BOARD_SIDE; ++row) {
 		for (size_t pad = 0; pad < CELL_PADDING; ++pad) {
 			wmove(w, ++top, left);
 			print_table_row(w, true);
@@ -159,7 +124,7 @@ static void game_loop(void)
 {
 	int height, width, ch = 0;
 	bool exit = false;
-	struct game game_state;
+	struct game_2048 game;
 	WINDOW *stats_w, *board_w, *key_w;
 
 	getmaxyx(stdscr, height, width);
@@ -174,10 +139,10 @@ static void game_loop(void)
 
 	refresh();
 
-	game_init(&game_state);
+	game_2048_init(&game);
 	while (!exit) {
-		print_board(board_w, &game_state);
-		print_score(stats_w, game_state.score);
+		print_board(board_w, &game);
+		print_score(stats_w, game.score);
 		print_key(key_w, ch);
 
 		ch = getch();

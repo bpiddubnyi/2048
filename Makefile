@@ -10,7 +10,7 @@ all: $(PROJECT)
 	@echo "  CC $@"
 	@$(CC) $(CFLAGS) -o $@ -c $^
 
-$(PROJECT): main.o
+$(PROJECT): main.o 2048.o
 	@echo "  LD $@"
 	@$(CC) -o $@ $^ $(LDFLAGS) 
 

@@ -217,7 +217,6 @@ void game_2048_add_random_cell(struct game_2048 *g)
 	if (game_2048_is_over(g))
 		return;
 
-	srandom(time(NULL));
 	while(true) {
 		x = random() % G2048_BOARD_SIDE;
 		y = random() % G2048_BOARD_SIDE;
@@ -299,6 +298,8 @@ bool game_2048_is_over(struct game_2048 *g)
 void game_2048_init(struct game_2048 *g)
 {
 	assert(g);
+
+	srandom(time(NULL));
 
 	memset(g, 0, sizeof(*g));
 	game_2048_add_random_cell(g);

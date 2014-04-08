@@ -68,8 +68,6 @@ static void print_board(WINDOW *w, struct game_2048 *g) {
 	int height, width, left, top;
 	assert(w);
 
-	wclear(w);
-
 	getmaxyx(w, height, width);
 	if (height < BOARD_HEIGHT || width < BOARD_WIDTH) {
 		wmove(w, 0, 0);

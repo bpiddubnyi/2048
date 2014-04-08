@@ -17,7 +17,7 @@
 static void print_cell(WINDOW *w, struct game_2048 *g, size_t row, size_t col)
 {
 	char buf[FIELD_WIDTH];
-	int len, left, right;
+	int color, len, left, right;
 
 	assert(g);
 	assert(row < G2048_BOARD_SIDE);
@@ -32,9 +32,45 @@ static void print_cell(WINDOW *w, struct game_2048 *g, size_t row, size_t col)
 	left = (FIELD_WIDTH - len) / 2;
 	right = FIELD_WIDTH - len -left;
 
-	attron(A_BOLD);
+	switch(g->board[row][col]) {
+	case 2:
+		color = 0;
+		break;
+	case 4:
+		color = 1;
+		break;
+	case 8:
+		color = 2;
+		break;
+	case 16:
+		color = 3;
+		break;
+	case 32:
+		color = 4;
+		break;
+	case 64:
+		color = 5;
+		break;
+	case 128:
+		color = 6;
+		break;
+	case 256:
+		color = 7;
+		break;
+	case 512:
+		color = 8;
+		break;
+	case 1024:
+		color = 9;
+		break;
+	case 2048:
+		color = 10;
+		break;
+	}
+
+	wattron(w, A_BOLD | COLOR_PAIR(color));
 	wprintw(w, "%*s%" PRIu16 "%*s", left, " ", g->board[row][col], right, " ");
-	attroff(A_BOLD);
+	wattroff(w, A_BOLD | COLOR_PAIR(color));
 }
 
 static void print_board_row(WINDOW *w, struct game_2048 *g, size_t row)
@@ -66,10 +102,10 @@ static void print_board(WINDOW *w, struct game_2048 *g) {
 	assert(w);
 
 	wclear(w);
-	wmove(w, 0, 0);
 
 	getmaxyx(w, height, width);
 	if (height < BOARD_HEIGHT || width < BOARD_WIDTH) {
+		wmove(w, 0, 0);
 		wprintw(w, "Terminal window is too small to display gameboard");
 		wrefresh(w);
 		return;
@@ -105,9 +141,11 @@ static void print_score(WINDOW *w, uint64_t score)
 {
 	assert(w);
 
-	attron(A_BOLD);
+	wclear(w);
+
+	wattron(w, A_BOLD);
 	mvwprintw(w, 0, 0, " Score: %" PRIu64, score);
-	attroff(A_BOLD);
+	wattroff(w, A_BOLD);
 	wrefresh(w);
 }
 
@@ -133,6 +171,9 @@ static void game_loop(void)
 		print_board(board_w, &game);
 		print_score(stats_w, game.score);
 
+		if (game_2048_is_over(&game))
+			exit = true;
+
 		ch = getch();
 		switch(ch) {
 		case KEY_LEFT:
@@ -150,6 +191,11 @@ static void game_loop(void)
 		case 'q':
 			exit = true;
 			break;
+		case 'n':
+			if (exit == true) {
+				exit = false;
+				game_2048_init(&game);
+			}
 		default:
 			mv = -1;
 		}
@@ -162,11 +208,30 @@ static void game_loop(void)
 	delwin(stats_w);
 }
 
+static void define_colors(void)
+{
+	init_pair(1, 1, COLOR_BLACK);
+	init_pair(2, 2, COLOR_BLACK);
+	init_pair(3, 3, COLOR_BLACK);
+	init_pair(4, 4, COLOR_BLACK);
+	init_pair(5, 5, COLOR_BLACK);
+	init_pair(6, 6, COLOR_BLACK);
+	init_pair(7, 7, COLOR_BLACK);
+	init_pair(8, 8, COLOR_BLACK);
+	init_pair(9, 9, COLOR_BLACK);
+	init_pair(10, 10, COLOR_BLACK);
+}
+
 int main() {
 	initscr();
 	cbreak();
 	keypad(stdscr, TRUE);
 	noecho();
+
+	if (has_colors()) {
+		start_color();
+		define_colors();
+	}
 
 	game_loop();
 

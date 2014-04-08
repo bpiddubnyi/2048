@@ -23,17 +23,17 @@ static void print_cell(WINDOW *w, struct game_2048 *g, size_t row, size_t col)
 	assert(row < G2048_BOARD_SIDE);
 	assert(col < G2048_BOARD_SIDE);
 
-	if (g->board[col][row] == 0) {
+	if (g->board[row][col] == 0) {
 		wprintw(w, "%*s", FIELD_WIDTH, " ");
 		return;
 	}
 
-	len = snprintf(buf, FIELD_WIDTH, "%" PRIu16, g->board[col][row]);
+	len = snprintf(buf, FIELD_WIDTH, "%" PRIu16, g->board[row][col]);
 	left = (FIELD_WIDTH - len) / 2;
 	right = FIELD_WIDTH - len -left;
 
 	attron(A_BOLD);
-	wprintw(w, "%*s%" PRIu16 "%*s", left, " ", g->board[col][row], right, " ");
+	wprintw(w, "%*s%" PRIu16 "%*s", left, " ", g->board[row][col], right, " ");
 	attroff(A_BOLD);
 }
 
@@ -111,30 +111,19 @@ static void print_score(WINDOW *w, uint64_t score)
 	wrefresh(w);
 }
 
-static void print_key(WINDOW *w, int key)
-{
-	assert(w);
-
-	attron(A_BOLD);
-	mvwprintw(w, 0, 0, " Key pressed: %d", key);
-	attroff(A_BOLD);
-	wrefresh(w);
-}
 static void game_loop(void)
 {
 	int height, width, ch = 0;
 	bool exit = false;
 	struct game_2048 game;
-	WINDOW *stats_w, *board_w, *key_w;
+	WINDOW *stats_w, *board_w;
 
 	getmaxyx(stdscr, height, width);
 
-	stats_w = newwin(1, width / 2, 0, 0);
-	key_w = newwin(1, width - (width / 2), 0, width / 2);
+	stats_w = newwin(1, width, 0, 0);
 	board_w = newwin(height - 1, width, 1, 0);
 	
 	wrefresh(stats_w);
-	wrefresh(key_w);
 	wrefresh(board_w);
 
 	refresh();
@@ -143,11 +132,25 @@ static void game_loop(void)
 	while (!exit) {
 		print_board(board_w, &game);
 		print_score(stats_w, game.score);
-		print_key(key_w, ch);
 
 		ch = getch();
-		if (ch == 'q')
+		switch(ch) {
+		case KEY_LEFT:
+			game_2048_move_left(&game);
 			break;
+		case KEY_RIGHT:
+			game_2048_move_right(&game);
+			break;
+		case KEY_DOWN:
+			game_2048_move_bottom(&game);
+			break;
+		case KEY_UP:
+			game_2048_move_top(&game);
+			break;
+		case 'q':
+			exit = true;
+			break;
+		}
 	}
 
 	delwin(board_w);

@@ -246,11 +246,33 @@ size_t game_2048_move(struct game_2048 *g, enum game_2048_move m)
 
 /* {{{1 Game over check */
 
+static bool game_2048_cell_is_mergeable(struct game_2048 *g, size_t row, 
+					size_t col)
+{
+	if (col > 0 && g->board[row][col -1] == g->board[row][col])
+		return true;
+
+	if (row > 0 && g->board[row - 1][col] == g->board[row][col])
+		return true;
+
+	if (col < G2048_BOARD_SIDE - 1 && (g->board[row][col + 1]
+					  == g->board[row][col]))
+		return true;
+
+	if (row < G2048_BOARD_SIDE - 1 && (g->board[row + 1][col]
+					   == g->board[row][col]))
+		return true;
+
+	return false;
+}
+
 bool game_2048_is_over(struct game_2048 *g)
 {
 	for (size_t row = 0; row < G2048_BOARD_SIDE; ++row) {
 		for (size_t col = 0; col < G2048_BOARD_SIDE; ++col) {
 			if (g->board[row][col] == 0)
+				return false;
+			if (game_2048_cell_is_mergeable(g, row, col))
 				return false;
 		}
 	}

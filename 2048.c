@@ -12,9 +12,10 @@
 
 /* {{{2 Row collapse */
 
-static void game_2048_collapse_row_left(struct game_2048 *g, size_t row)
+static size_t game_2048_collapse_row_left(struct game_2048 *g, size_t row)
 {
 	ssize_t first_zero = -1;
+	size_t cells_moved = 0;
 	for (size_t col = 0; col < G2048_BOARD_SIDE; ++col) {
 		if (g->board[row][col] == 0) {
 			if (first_zero == -1)
@@ -25,13 +26,16 @@ static void game_2048_collapse_row_left(struct game_2048 *g, size_t row)
 		if (first_zero > -1) {
 			g->board[row][first_zero++] = g->board[row][col];
 			g->board[row][col] = 0;
+			++cells_moved;
 		}
 	}
+	return cells_moved;
 }
 
-static void game_2048_collapse_row_right(struct game_2048 *g, size_t row)
+static size_t game_2048_collapse_row_right(struct game_2048 *g, size_t row)
 {
 	ssize_t first_zero = -1;
+	size_t cells_moved = 0;
 	for (ssize_t col = G2048_BOARD_SIDE - 1; col >= 0; --col) {
 		if (g->board[row][col] == 0) {
 			if (first_zero == -1)
@@ -42,15 +46,18 @@ static void game_2048_collapse_row_right(struct game_2048 *g, size_t row)
 		if (first_zero > -1) {
 			g->board[row][first_zero--] = g->board[row][col];
 			g->board[row][col] = 0;
+			++cells_moved;
 		}
 	}
+	return cells_moved;
 }
 
 /* {{{2 Column collapse */
 
-static void game_2048_collapse_col_top(struct game_2048 *g, size_t col)
+static size_t game_2048_collapse_col_top(struct game_2048 *g, size_t col)
 {
 	ssize_t first_zero = -1;
+	size_t cells_moved = 0;
 	for (ssize_t row = 0; row < G2048_BOARD_SIDE; ++row) {
 		if (g->board[row][col] == 0) {
 			if (first_zero == -1)
@@ -61,13 +68,16 @@ static void game_2048_collapse_col_top(struct game_2048 *g, size_t col)
 		if (first_zero > -1) {
 			g->board[first_zero++][col] = g->board[row][col];
 			g->board[row][col] = 0;
+			++cells_moved;
 		}
 	}
+	return cells_moved;
 }
 
-static void game_2048_collapse_col_bottom(struct game_2048 *g, size_t col)
+static size_t game_2048_collapse_col_bottom(struct game_2048 *g, size_t col)
 {
 	ssize_t first_zero = -1;
+	size_t cells_moved = 0;
 	for (ssize_t row = G2048_BOARD_SIDE - 1; row >= 0; --row) {
 		if (g->board[row][col] == 0) {
 			if (first_zero == -1)
@@ -78,16 +88,19 @@ static void game_2048_collapse_col_bottom(struct game_2048 *g, size_t col)
 		if (first_zero > -1) {
 			g->board[first_zero--][col] = g->board[row][col];
 			g->board[row][col] = 0;
+			++cells_moved;
 		}
 	}
+	return cells_moved;
 }
 
 /* {{{1 Merge functions */
 
 /* {{{2 Row merge */
 
-static void game_2048_merge_row_left(struct game_2048 *g, size_t row) {
-	game_2048_collapse_row_left(g, row);
+static size_t game_2048_merge_row_left(struct game_2048 *g, size_t row) {
+	size_t cells_moved = 0;
+	cells_moved += game_2048_collapse_row_left(g, row);
 	for (size_t col = 0; col < (G2048_BOARD_SIDE - 1); ++col) {
 		/* The board is already collapsed, so there's no cells after
 		 * the zero */
@@ -97,13 +110,16 @@ static void game_2048_merge_row_left(struct game_2048 *g, size_t row) {
 			g->board[row][col] *= 2;
 			g->board[row][col + 1] = 0;
 			g->score += g->board[row][col];
-			game_2048_collapse_row_left(g, row);
+			++cells_moved;
+			cells_moved += game_2048_collapse_row_left(g, row);
 		}
 	}
+	return cells_moved;
 }
 
-static void game_2048_merge_row_right(struct game_2048 *g, size_t row) {
-	game_2048_collapse_row_right(g, row);
+static size_t game_2048_merge_row_right(struct game_2048 *g, size_t row) {
+	size_t cells_moved = 0;
+	cells_moved += game_2048_collapse_row_right(g, row);
 	for (size_t col = (G2048_BOARD_SIDE - 1); col > 0; --col) {
 		/* The board is already collapsed, so there's no cells after
 		 * the zero */
@@ -113,15 +129,18 @@ static void game_2048_merge_row_right(struct game_2048 *g, size_t row) {
 			g->board[row][col] *= 2;
 			g->board[row][col - 1] = 0;
 			g->score += g->board[row][col];
-			game_2048_collapse_row_right(g, row);
+			++cells_moved;
+			cells_moved += game_2048_collapse_row_right(g, row);
 		}
 	}
+	return cells_moved;
 }
 
 /* {{{2 Column merge */
 
-static void game_2048_merge_col_top(struct game_2048 *g, size_t col) {
-	game_2048_collapse_col_top(g, col);
+static size_t game_2048_merge_col_top(struct game_2048 *g, size_t col) {
+	size_t cells_moved = 0;
+	cells_moved += game_2048_collapse_col_top(g, col);
 	for (size_t row = 0; row < (G2048_BOARD_SIDE - 1); ++row) {
 		/* The board is already collapsed, so there's no cells after
 		 * the zero */
@@ -131,13 +150,16 @@ static void game_2048_merge_col_top(struct game_2048 *g, size_t col) {
 			g->board[row][col] *= 2;
 			g->board[row + 1][col] = 0;
 			g->score += g->board[row][col];
-			game_2048_collapse_col_top(g, col);
+			++cells_moved;
+			cells_moved += game_2048_collapse_col_top(g, col);
 		}
 	}
+	return cells_moved;
 }
 
-static void game_2048_merge_col_bottom(struct game_2048 *g, size_t col) {
-	game_2048_collapse_col_bottom(g, col);
+static size_t game_2048_merge_col_bottom(struct game_2048 *g, size_t col) {
+	size_t cells_moved = 0;
+	cells_moved += game_2048_collapse_col_bottom(g, col);
 	for (size_t row = (G2048_BOARD_SIDE - 1); row > 0; --row) {
 		/* The board is already collapsed, so there's no cells after
 		 * the zero */
@@ -147,39 +169,49 @@ static void game_2048_merge_col_bottom(struct game_2048 *g, size_t col) {
 			g->board[row][col] *= 2;
 			g->board[row - 1][col] = 0;
 			g->score += g->board[row][col];
-			game_2048_collapse_col_bottom(g, col);
+			++cells_moved;
+			cells_moved += game_2048_collapse_col_bottom(g, col);
 		}
 	}
+	return cells_moved;
 }
 
 /* {{{1 Move functions */
 
 void game_2048_move_left(struct game_2048 *g)
 {
+	size_t cells_moved = 0;
 	for (size_t row = 0; row < G2048_BOARD_SIDE; ++row)
-		game_2048_merge_row_left(g, row);
-	game_2048_add_random_cell(g);
+		cells_moved += game_2048_merge_row_left(g, row);
+	if (cells_moved)
+		game_2048_add_random_cell(g);
 }
 
 void game_2048_move_right(struct game_2048 *g)
 {
+	size_t cells_moved = 0;
 	for (size_t row = 0; row < G2048_BOARD_SIDE; ++row)
 		game_2048_merge_row_right(g, row);
-	game_2048_add_random_cell(g);
+	if (cells_moved)
+		game_2048_add_random_cell(g);
 }
 
 void game_2048_move_top(struct game_2048 *g)
 {
+	size_t cells_moved = 0;
 	for (size_t col = 0; col < G2048_BOARD_SIDE; ++col)
-		game_2048_merge_col_top(g, col);
-	game_2048_add_random_cell(g);
+		cells_moved += game_2048_merge_col_top(g, col);
+	if (cells_moved)
+		game_2048_add_random_cell(g);
 }
 
 void game_2048_move_bottom(struct game_2048 *g)
 {
+	size_t cells_moved = 0;
 	for (size_t col = 0; col < G2048_BOARD_SIDE; ++col)
-		game_2048_merge_col_bottom(g, col);
-	game_2048_add_random_cell(g);
+		cells_moved += game_2048_merge_col_bottom(g, col);
+	if (cells_moved)
+		game_2048_add_random_cell(g);
 }
 
 /* {{{1 Game over check */

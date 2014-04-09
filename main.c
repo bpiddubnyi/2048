@@ -133,6 +133,8 @@ static void print_score(WINDOW *w, uint64_t score)
 
 static void print_menu_offer(WINDOW *w)
 {
+	assert(w);
+
 	wclear(w);
 	wmove(w, 0, 0);
 	
@@ -186,7 +188,13 @@ static int show_game_menu(WINDOW *w, bool win, bool show_continue)
 	return true;
 }
 
-static bool game_action(struct game_2048 *g)
+enum game_action {
+	ACT_UPDATE,
+	ACT_RESIZE,
+	ACT_SHOW_MENU
+};
+
+static int game_action(struct game_2048 *g)
 {
 	int ch;
 	int mv = -1;
@@ -208,47 +216,78 @@ static bool game_action(struct game_2048 *g)
 		case KEY_UP:
 			mv = G2048_MOVE_TOP;
 			goto action;
+		case KEY_RESIZE:
+			return ACT_RESIZE;
 		case 'm':
-			return true;
-			break;
+			return ACT_SHOW_MENU;
 		}
 	}
 
 action:
 	game_2048_move(g, mv);
 
-	return false;
+	return ACT_UPDATE;
+}
+
+struct window_layout {
+	WINDOW *score_w;
+	WINDOW *board_w;
+	WINDOW *menu_w;
+};
+
+static void layout_destroy(struct window_layout *layout)
+{
+	assert(layout);
+
+	if (layout->score_w)
+		delwin(layout->score_w);
+	if (layout->board_w)
+		delwin(layout->board_w);
+	if (layout->menu_w)
+		delwin(layout->menu_w);
+}
+
+static void layout_init(struct window_layout *layout)
+{
+	int height, width;
+
+	assert(layout);
+
+	layout_destroy(layout);
+
+	getmaxyx(stdscr, height, width);
+
+	layout->score_w = newwin(1, width, 0, 0);
+	layout->board_w = newwin(height - 2, width, 1, 0);
+	layout->menu_w = newwin(1, width, height - 1, 0);
 }
 
 static void main_loop(void)
 {
-	bool show_continue, exit = false;
-	int height, width;
+	bool exit = false;
+	int action;
 	struct game_2048 game;
-	WINDOW *score_w, *board_w, *dialog_w;
+	struct window_layout layout = { 0 };
 
-	getmaxyx(stdscr, height, width);
-
-	score_w = newwin(1, width, 0, 0);
-	board_w = newwin(height - 2, width, 1, 0);
-	dialog_w = newwin(1, width, height - 1, 0);
-
+	layout_init(&layout);
 	refresh();
 
 	game_2048_init(&game);
 	while (!exit) {
-		print_board(board_w, &game);
-		print_score(score_w, game.score);
-		print_menu_offer(dialog_w);
+		print_score(layout.score_w, game.score);
+		print_board(layout.board_w, &game);
+		print_menu_offer(layout.menu_w);
 		doupdate();
 
-		show_continue = false;
+		action = -1;
 		if (game.win || game_2048_is_over(&game) 
-		    || (show_continue = game_action(&game))) { 
-			switch(show_game_menu(dialog_w, game.win, show_continue)) {
+		    || ((action = game_action(&game)) == ACT_SHOW_MENU)) { 
+			switch(show_game_menu(layout.menu_w, game.win, 
+					      (action == ACT_SHOW_MENU) ? true
+					      : false)) {
 			case MENU_QUIT:
 				exit = true;
-				break;
+				continue;
 			case MENU_NEW_GAME:
 				game_2048_init(&game);
 				continue;
@@ -256,11 +295,11 @@ static void main_loop(void)
 				continue;
 			}
 		}
+		if (action == ACT_RESIZE)
+			layout_init(&layout);
 	}
 
-	delwin(dialog_w);
-	delwin(board_w);
-	delwin(score_w);
+	layout_destroy(&layout);
 }
 
 static void define_colors(void)

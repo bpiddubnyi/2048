@@ -79,9 +79,12 @@ static void print_table_row(WINDOW *w, bool empty)
 	}
 }
 
-static void print_board(WINDOW *w, struct game_2048 *g) {
+static void print_board(WINDOW *w, struct game_2048 *g, bool clear) {
 	int height, width, left, top;
 	assert(w);
+
+	if (clear)
+		wclear(w);
 
 	getmaxyx(w, height, width);
 	if (height < BOARD_HEIGHT || width < BOARD_WIDTH) {
@@ -117,11 +120,12 @@ static void print_board(WINDOW *w, struct game_2048 *g) {
 	wnoutrefresh(w);
 }
 
-static void print_score(WINDOW *w, uint64_t score)
+static void print_score(WINDOW *w, uint64_t score, bool clear)
 {
 	assert(w);
 
-	wclear(w);
+	if (clear)
+		wclear(w);
 	wmove(w, 0, 0);
 
 	wattron(w, A_BOLD);
@@ -131,102 +135,120 @@ static void print_score(WINDOW *w, uint64_t score)
 	wnoutrefresh(w);
 }
 
-static void print_menu_offer(WINDOW *w)
-{
-	assert(w);
-
-	wclear(w);
-	wmove(w, 0, 0);
-	
-	wattron(w, A_BOLD);
-	wprintw(w, " Press 'm' for menu");
-	wattroff(w, A_BOLD);
-
-	wnoutrefresh(w);
-}
-
-enum game_menu {
-	MENU_QUIT,
-	MENU_NEW_GAME,
-	MENU_CONTINUE
+enum game_action {
+	ACT_RESIZE,
+	ACT_SHOW_MENU,
+	ACT_QUIT,
+	ACT_NEW_GAME,
+	ACT_CONTINUE
 };
 
-static int show_game_menu(WINDOW *w, bool win, bool show_continue)
-{
-	int ch;
+enum game_state {
+	STATE_PLAYIN,
+	STATE_IN_GAME_MENU,
+	STATE_WIN,
+	STATE_LOOSE,
+};
 
-	wclear(w);
+static void print_menu(WINDOW *w, int state, bool clear)
+{
+	if (clear)
+		wclear(w);
 	wmove(w, 0, 0);
 
-	if (win) {
+	switch(state) {
+	case STATE_WIN:
 		wattron(w, A_BOLD);
 		wprintw(w, " YOU WIN ");
 		wattroff(w, A_BOLD);
-	} else if (!show_continue) {
+		break;
+	case STATE_LOOSE:
 		wattron(w, A_BOLD);
 		wprintw(w, " GAME OVER ");
 		wattroff(w, A_BOLD);
+		break;
+	case STATE_PLAYIN:
+		wattron(w, A_BOLD);
+		wprintw(w, " Press 'm' for menu");
+		wattroff(w, A_BOLD);
+		goto end;
 	}
 	
 	wprintw(w, "Start a new game(n) / exit(q)%s? ", 
-		show_continue ? " / continue(c)" : "");
-	wrefresh(w);
-	
-	while (true) {
-		ch = getch();
-		switch(ch) {
-		case 'n':
-			return MENU_NEW_GAME;
-		case 'q':
-			return MENU_QUIT;
-		case 'c':
-			if (!show_continue)
-				break;
-			return MENU_CONTINUE;
-		}
-	}
-	return true;
+		state == STATE_IN_GAME_MENU ? " / continue(c)" : "");
+end:
+	wnoutrefresh(w);
 }
 
-enum game_action {
-	ACT_UPDATE,
-	ACT_RESIZE,
-	ACT_SHOW_MENU
-};
+static void game_action(struct game_2048 *g, int key)
+{
+	int mv;
 
-static int game_action(struct game_2048 *g)
+	switch(key) {
+	case KEY_LEFT:
+		mv = G2048_MOVE_LEFT;
+		break;
+	case KEY_RIGHT:
+		mv = G2048_MOVE_RIGHT;
+		break;
+	case KEY_UP:
+		mv = G2048_MOVE_TOP;
+		break;
+	case KEY_DOWN:
+		mv = G2048_MOVE_BOTTOM;
+		break;
+	default:
+		return;
+	}
+
+	game_2048_move(g, mv);
+}
+
+static int input_handle(int state, struct game_2048 *g)
 {
 	int ch;
-	int mv = -1;
 
 	assert(g);
 
 	while(true) {
 		ch = getch();
+
 		switch(ch) {
 		case KEY_LEFT:
-			mv = G2048_MOVE_LEFT;
-			goto action;
 		case KEY_RIGHT:
-			mv = G2048_MOVE_RIGHT;
-			goto action;
 		case KEY_DOWN:
-			mv = G2048_MOVE_BOTTOM;
-			goto action;
 		case KEY_UP:
-			mv = G2048_MOVE_TOP;
-			goto action;
+			if (state == STATE_PLAYIN) {
+				game_action(g, ch);
+				return ACT_CONTINUE;
+			}
+			break;
 		case KEY_RESIZE:
 			return ACT_RESIZE;
 		case 'm':
-			return ACT_SHOW_MENU;
+			if (state == STATE_PLAYIN)
+				return ACT_SHOW_MENU;
+			break;
+		case 'n':
+		case 'q':
+			switch(state) {
+			case STATE_IN_GAME_MENU:
+			case STATE_WIN:
+			case STATE_LOOSE:
+				if (ch == 'n')
+					return ACT_NEW_GAME;
+				if (ch == 'q')
+					return ACT_QUIT;
+			}
+			break;
+		case 'c':
+			if (state == STATE_IN_GAME_MENU)
+				return ACT_CONTINUE;
+			break;
 		}
 	}
 
-action:
-	game_2048_move(g, mv);
-
-	return ACT_UPDATE;
+	return ACT_CONTINUE;
 }
 
 struct window_layout {
@@ -260,43 +282,54 @@ static void layout_init(struct window_layout *layout)
 	layout->score_w = newwin(1, width, 0, 0);
 	layout->board_w = newwin(height - 2, width, 1, 0);
 	layout->menu_w = newwin(1, width, height - 1, 0);
+	refresh();
 }
 
 static void main_loop(void)
 {
-	bool exit = false;
-	int action;
+	bool exit = false, clear = true;
+	int state = STATE_PLAYIN;
+	int action = ACT_RESIZE;
 	struct game_2048 game;
 	struct window_layout layout = { 0 };
 
 	layout_init(&layout);
-	refresh();
-
 	game_2048_init(&game);
-	while (!exit) {
-		print_score(layout.score_w, game.score);
-		print_board(layout.board_w, &game);
-		print_menu_offer(layout.menu_w);
-		doupdate();
 
-		action = -1;
-		if (game.win || game_2048_is_over(&game) 
-		    || ((action = game_action(&game)) == ACT_SHOW_MENU)) { 
-			switch(show_game_menu(layout.menu_w, game.win, 
-					      (action == ACT_SHOW_MENU) ? true
-					      : false)) {
-			case MENU_QUIT:
+	while (!exit) {
+		if (game.win) {
+			state = STATE_WIN;
+		} else if (game_2048_is_over(&game)) {
+			state = STATE_LOOSE;
+		}
+
+		print_score(layout.score_w, game.score, clear);
+		print_board(layout.board_w, &game, clear);
+		print_menu(layout.menu_w, state, clear);
+		clear = false;
+		doupdate();
+		
+		switch ((action = input_handle(state, &game))) {
+			case ACT_QUIT:
 				exit = true;
 				continue;
-			case MENU_NEW_GAME:
+			case ACT_RESIZE:
+				layout_init(&layout);
+				clear = true;
+				continue;
+			case ACT_NEW_GAME:
 				game_2048_init(&game);
+				state = STATE_PLAYIN;
+				clear = true;
 				continue;
-			case MENU_CONTINUE:
+			case ACT_SHOW_MENU:
+				state = STATE_IN_GAME_MENU;
 				continue;
-			}
+			case ACT_CONTINUE:
+				state = STATE_PLAYIN;
+				clear = true;
+				continue;
 		}
-		if (action == ACT_RESIZE)
-			layout_init(&layout);
 	}
 
 	layout_destroy(&layout);

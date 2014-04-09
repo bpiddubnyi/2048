@@ -222,7 +222,7 @@ void game_2048_add_random_cell(struct game_2048 *g)
 		y = random() % G2048_BOARD_SIDE;
 
 		if (g->board[x][y] == 0) {
-			g->board[x][y] = (x + y) % 2 ? 2 : 4;
+			g->board[x][y] = (random() % 2 + 1) * 2;
 			break;
 		}
 	}

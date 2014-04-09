@@ -124,6 +124,7 @@ static size_t game_2048_merge_row_left(struct game_2048 *g, size_t row) {
 		if (g->board[row][col] == g->board[row][col + 1]) {
 			g->board[row][col] *= 2;
 			g->board[row][col + 1] = 0;
+			g->free_cells++;
 			g->score += g->board[row][col];
 			
 			if (g->board[row][col] == 2048)
@@ -147,6 +148,7 @@ static size_t game_2048_merge_row_right(struct game_2048 *g, size_t row) {
 		if (g->board[row][col] == g->board[row][col - 1]) {
 			g->board[row][col] *= 2;
 			g->board[row][col - 1] = 0;
+			g->free_cells++;
 			g->score += g->board[row][col];
 			
 			if (g->board[row][col] == 2048)
@@ -172,6 +174,7 @@ static size_t game_2048_merge_col_top(struct game_2048 *g, size_t col) {
 		if (g->board[row][col] == g->board[row + 1][col]) {
 			g->board[row][col] *= 2;
 			g->board[row + 1][col] = 0;
+			g->free_cells++;
 			g->score += g->board[row][col];
 			
 			if (g->board[row][col] == 2048)
@@ -195,6 +198,7 @@ static size_t game_2048_merge_col_bottom(struct game_2048 *g, size_t col) {
 		if (g->board[row][col] == g->board[row - 1][col]) {
 			g->board[row][col] *= 2;
 			g->board[row - 1][col] = 0;
+			g->free_cells++;
 			g->score += g->board[row][col];
 			
 			if (g->board[row][col] == 2048)
@@ -211,21 +215,25 @@ static size_t game_2048_merge_col_bottom(struct game_2048 *g, size_t col) {
 
 void game_2048_add_random_cell(struct game_2048 *g)
 {
+	int cellno;
+
 	assert(g);
-	size_t x, y;
 
 	if (game_2048_is_over(g))
 		return;
 
-	while(true) {
-		x = random() % G2048_BOARD_SIDE;
-		y = random() % G2048_BOARD_SIDE;
+	cellno = random() % g->free_cells;
 
-		if (g->board[x][y] == 0) {
-			g->board[x][y] = (random() % 2 + 1) * 2;
-			break;
+	for (size_t x = 0; x < G2048_BOARD_SIDE; ++x) {
+		for (size_t y = 0; y < G2048_BOARD_SIDE; ++y) {
+			if (g->board[x][y] == 0 && cellno-- == 0) {
+				g->board[x][y] = (random() % 2 + 1) * 2;
+				break;
+			}
 		}
 	}
+
+	g->free_cells--;
 }
 
 /* {{{1 Move */
@@ -302,6 +310,8 @@ void game_2048_init(struct game_2048 *g)
 	srandom(time(NULL));
 
 	memset(g, 0, sizeof(*g));
+	g->free_cells = G2048_BOARD_SIDE * G2048_BOARD_SIDE;
+
 	game_2048_add_random_cell(g);
 	game_2048_add_random_cell(g);
 }

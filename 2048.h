@@ -22,6 +22,7 @@
 #define G2048_BOARD_SIDE 4
 
 struct game_2048 {
+	uint8_t  free_cells;
 	uint64_t score;
 	bool     win;
 	uint16_t board[G2048_BOARD_SIDE][G2048_BOARD_SIDE];

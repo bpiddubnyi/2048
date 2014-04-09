@@ -141,7 +141,8 @@ enum game_action {
 	ACT_SHOW_MENU,
 	ACT_QUIT,
 	ACT_NEW_GAME,
-	ACT_CONTINUE
+	ACT_CONTINUE,
+	ACT_UPDATE
 };
 
 enum game_state {
@@ -181,7 +182,7 @@ end:
 	wnoutrefresh(w);
 }
 
-static void game_action(struct game_2048 *g, int key)
+static size_t game_action(struct game_2048 *g, int key)
 {
 	int mv;
 
@@ -199,10 +200,10 @@ static void game_action(struct game_2048 *g, int key)
 		mv = G2048_MOVE_BOTTOM;
 		break;
 	default:
-		return;
+		return 0;
 	}
 
-	game_2048_move(g, mv);
+	return game_2048_move(g, mv);
 }
 
 static int input_handle(int state, struct game_2048 *g)
@@ -220,8 +221,10 @@ static int input_handle(int state, struct game_2048 *g)
 		case KEY_DOWN:
 		case KEY_UP:
 			if (state == STATE_PLAYIN) {
-				game_action(g, ch);
-				return ACT_CONTINUE;
+				if (game_action(g, ch))
+					return ACT_UPDATE;
+				else
+					return ACT_CONTINUE;
 			}
 			break;
 		case KEY_RESIZE:
@@ -306,11 +309,15 @@ static void main_loop(void)
 
 		print_score(layout.score_w, game.score, clear);
 		print_board(layout.board_w, &game, clear);
+		
+menu:
 		print_menu(layout.menu_w, state, clear);
 		clear = false;
 		doupdate();
-		
+
 		switch ((action = input_handle(state, &game))) {
+			case ACT_UPDATE:
+				continue;
 			case ACT_QUIT:
 				exit = true;
 				continue;
@@ -325,11 +332,12 @@ static void main_loop(void)
 				continue;
 			case ACT_SHOW_MENU:
 				state = STATE_IN_GAME_MENU;
-				continue;
+				goto menu;
 			case ACT_CONTINUE:
+				if (state == STATE_IN_GAME_MENU)
+					clear = true;
 				state = STATE_PLAYIN;
-				clear = true;
-				continue;
+				goto menu;
 		}
 	}
 

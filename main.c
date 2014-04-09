@@ -129,8 +129,9 @@ static void print_score(WINDOW *w, uint64_t score, bool clear)
 	wmove(w, 0, 0);
 
 	wattron(w, A_BOLD);
-	wprintw(w,"Score: %" PRIu64, score);
+	wprintw(w,"Score: ");
 	wattroff(w, A_BOLD);
+	wprintw(w, "%" PRIu64, score);
 
 	wnoutrefresh(w);
 }
@@ -159,17 +160,17 @@ static void print_menu(WINDOW *w, int state, bool clear)
 	switch(state) {
 	case STATE_WIN:
 		wattron(w, A_BOLD);
-		wprintw(w, " YOU WIN ");
+		wprintw(w, "YOU WIN ");
 		wattroff(w, A_BOLD);
 		break;
 	case STATE_LOOSE:
 		wattron(w, A_BOLD);
-		wprintw(w, " GAME OVER ");
+		wprintw(w, "GAME OVER ");
 		wattroff(w, A_BOLD);
 		break;
 	case STATE_PLAYIN:
 		wattron(w, A_BOLD);
-		wprintw(w, " Press 'm' for menu");
+		wprintw(w, "Press 'm' for menu ");
 		wattroff(w, A_BOLD);
 		goto end;
 	}

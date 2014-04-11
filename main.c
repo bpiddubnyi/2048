@@ -347,7 +347,7 @@ menu:
 static void define_colors(void)
 {
 	for (int i = 1; i <= 10; ++i) {
-		init_pair(i, i, COLOR_BLACK);
+		init_pair(i, i, -1);
 	}
 }
 
@@ -359,6 +359,7 @@ int main() {
 
 	if (has_colors()) {
 		start_color();
+		use_default_colors();
 		define_colors();
 	}
 

@@ -295,7 +295,7 @@ static void main_loop(void)
 	int state = STATE_PLAYIN;
 	int action = ACT_RESIZE;
 	struct game_2048 game;
-	struct window_layout layout = { 0 };
+	struct window_layout layout = {};
 
 	layout_init(&layout);
 	game_2048_init(&game);

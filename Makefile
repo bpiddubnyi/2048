@@ -1,5 +1,5 @@
 PROJECT ?= 2048
-CFLAGS = -W -Wall -Werror -std=c99 -pedantic -O2
+CFLAGS = -W -Wall -Werror -std=c99 -O2
 LDFLAGS = -lm -lncurses 
 
 default: all

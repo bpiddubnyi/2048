@@ -13,7 +13,7 @@
     You should have received a copy of the GNU General Public License
     along with 2048.  If not, see <http://www.gnu.org/licenses/>. */
 
-#define _BSD_SOURCE
+#define _DEFAULT_SOURCE
 
 #include <assert.h>
 #include <stdlib.h>
